@@ -1,0 +1,32 @@
+# Docker Compose configuration for Django e-commerce backend
+version: '3.8'
+
+services:
+  # PostgreSQL database service
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ecommerce_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Mapped to 5433 to avoid conflicts with local PostgreSQL
+
+  # Django web application service
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app  # Mount current directory for development
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db  # Wait for database to be ready
+    environment:
+      - DEBUG=1  # Enable Django debug mode
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:

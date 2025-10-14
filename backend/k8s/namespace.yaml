@@ -1,0 +1,9 @@
+# Namespace for the e-commerce application
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce
+  labels:
+    name: ecommerce
+    environment: production
+
