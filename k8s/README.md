@@ -1,6 +1,17 @@
 # Kubernetes Deployment Guide
 
-Complete Kubernetes manifests for deploying the E-commerce application with Django backend, Next.js frontend, and PostgreSQL database.
+Production-ready Kubernetes manifests for deploying the complete E-commerce application stack with Django backend, Next.js frontend, and PostgreSQL database. Tested on Minikube, K3s, and cloud providers (GKE, EKS, AKS).
+
+## 🎯 What's Included
+
+- **11 YAML manifests** ready to deploy
+- **Automated deployment** with Makefile
+- **High availability** with multiple replicas
+- **Data persistence** with PersistentVolumeClaims
+- **Health checks** with readiness/liveness probes
+- **Auto-scaling** support
+- **Complete documentation** and testing guides
+- **Status checker** script for monitoring
 
 ## 📁 Files Overview
 
