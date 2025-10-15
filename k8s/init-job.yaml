@@ -21,6 +21,7 @@ spec:
       containers:
       - name: django-migrate
         image: cescito04/ecommerce-backend:latest
+        imagePullPolicy: Never
         command:
         - /bin/sh
         - -c
