@@ -50,12 +50,12 @@ export default function Register() {
       if (err.response?.data) {
         const errorData = err.response.data;
         if (errorData.email) {
-          setError('Cet email est déjà utilisé');
+          setError("Cet email est déjà utilisé");
         } else {
-          setError('Erreur lors de l'inscription');
+          setError("Erreur lors de l'inscription");
         }
       } else {
-        setError('Erreur lors de l'inscription. Vérifiez que le backend est démarré.');
+        setError("Erreur lors de l'inscription. Vérifiez que le backend est démarré.");
       }
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Inscription...' : 'S'inscrire'}
+              {loading ? 'Inscription...' : "S'inscrire"}
             </button>
           </form>
 

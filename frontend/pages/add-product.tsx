@@ -79,7 +79,7 @@ export default function AddProduct() {
         setError('Votre session a expiré. Veuillez vous reconnecter.');
         setTimeout(() => router.push('/login'), 2000);
       } else {
-        setError('Erreur lors de l'ajout du produit. Vérifiez que le backend est démarré.');
+        setError("Erreur lors de l'ajout du produit. Vérifiez que le backend est démarré.");
       }
     } finally {
       setLoading(false);

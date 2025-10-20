@@ -36,7 +36,7 @@ export default function Login() {
       if (err.response?.status === 401) {
         setError('Email ou mot de passe incorrect');
       } else {
-        setError('Erreur lors de la connexion. Vérifiez que le backend est démarré.');
+        setError("Erreur lors de la connexion. Vérifiez que le backend est démarré.");
       }
     } finally {
       setLoading(false);

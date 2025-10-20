@@ -22,7 +22,7 @@ export default function Home() {
       setProducts(data.results || []);
     } catch (err: any) {
       console.error('Error fetching products:', err);
-      setError('Erreur lors du chargement des produits. Vérifiez que le backend est démarré.');
+      setError("Erreur lors du chargement des produits. Vérifiez que le backend est démarré.");
     } finally {
       setLoading(false);
     }
