@@ -31,9 +31,19 @@ Application e-commerce complète avec backend Django, frontend Next.js, PostgreS
 
 ## 📋 Prérequis
 
+### Pour Docker Compose
 - Docker Desktop installé
 - Docker Compose installé
 - Git
+
+### Pour Kubernetes
+- Minikube ou cluster Kubernetes
+- kubectl CLI
+- Docker pour builder les images
+
+## 🚀 Démarrage Rapide
+
+> **💡 Conseil** : Consultez [`QUICK_START.md`](QUICK_START.md) pour un guide ultra-rapide !
 
 ## 🛠️ Installation et Démarrage
 
