@@ -1,0 +1,33 @@
+# Dockerfile optimisé pour Kubernetes (sans entrypoint.sh)
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Installer les dépendances système
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copier et installer les dépendances Python
+COPY requirements.txt /app/
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copier le code
+COPY . /app/
+
+# Créer le répertoire static
+RUN mkdir -p /app/staticfiles
+
+EXPOSE 8000
+
+# Commande de démarrage pour Kubernetes (sans entrypoint.sh)
+CMD python manage.py migrate --noinput && \
+    python manage.py collectstatic --noinput && \
+    python manage.py shell -c "from users.models import Utilisateur; import os; email=os.environ.get('DJANGO_SUPERUSER_EMAIL'); Utilisateur.objects.filter(email=email).exists() or Utilisateur.objects.create_superuser(email=email, nom=os.environ.get('DJANGO_SUPERUSER_USERNAME'), password=os.environ.get('DJANGO_SUPERUSER_PASSWORD'))" && \
+    python manage.py runserver 0.0.0.0:8000
+
