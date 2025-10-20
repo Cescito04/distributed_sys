@@ -37,7 +37,7 @@ metadata:
     app: shophub
 type: Opaque
 stringData:
-  SECRET_KEY: "django-insecure-kubernetes-secret-key-change-in-production"
+  SECRET_KEY: "fv@#+t_7+$0m+i!0t^bgz3o7=67599+p%zzt4y*m!n#0-w+f^2"
   DB_PASSWORD: "postgres"
   POSTGRES_PASSWORD: "postgres"
   DJANGO_SUPERUSER_USERNAME: "admin"

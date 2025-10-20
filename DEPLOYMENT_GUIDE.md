@@ -16,10 +16,10 @@ Ce guide vous montre comment déployer l'application avec **Docker Compose** ou 
 ## 🐳 Option 1 : Docker Compose
 
 ### Avantages
-- ✅ Démarrage ultra-rapide (1 commande)
-- ✅ Parfait pour le développement
-- ✅ Facile à débugger
-- ✅ Pas besoin de registry Docker
+-  Démarrage ultra-rapide (1 commande)
+-  Parfait pour le développement
+-  Facile à débugger
+-  Pas besoin de registry Docker
 
 ### Commandes
 

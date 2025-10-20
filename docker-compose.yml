@@ -32,7 +32,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - SECRET_KEY=django-insecure-your-secret-key-here-change-in-production
+      - SECRET_KEY=fv@#+t_7+$0m+i!0t^bgz3o7=67599+p%zzt4y*m!n#0-w+f^2
       - DEBUG=True
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DB_NAME=ecommerce_db
