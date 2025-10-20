@@ -44,6 +44,8 @@ Application e-commerce complète avec backend Django, frontend Next.js, PostgreS
 ## 🚀 Démarrage Rapide
 
 > **💡 Conseil** : Consultez [`QUICK_START.md`](QUICK_START.md) pour un guide ultra-rapide !
+> 
+> **📚 Index** : Consultez [`DOCS_INDEX.md`](DOCS_INDEX.md) pour naviguer dans toute la documentation !
 
 ## 🛠️ Installation et Démarrage
 
