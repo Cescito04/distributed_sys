@@ -1,0 +1,79 @@
+---
+# Rôle pour installer Kubernetes (K3s) sur Ubuntu
+
+- name: Vérifier si K3s est déjà installé
+  stat:
+    path: /usr/local/bin/k3s
+  register: k3s_installed
+
+- name: Télécharger et installer K3s
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+  when: not k3s_installed.stat.exists
+  register: k3s_install
+  changed_when: k3s_install.rc == 0
+
+- name: Attendre que K3s soit prêt
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+  when: not k3s_installed.stat.exists
+
+- name: Créer le répertoire .kube pour l'utilisateur
+  file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Copier la config kubeconfig pour l'utilisateur
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+
+- name: Créer un lien symbolique kubectl si pas existant
+  file:
+    src: /usr/local/bin/k3s
+    dest: /usr/local/bin/kubectl
+    state: link
+  when: not k3s_installed.stat.exists
+
+- name: Attendre que K3s soit complètement opérationnel
+  command: kubectl get nodes
+  register: k3s_ready
+  until: k3s_ready.rc == 0
+  retries: 10
+  delay: 5
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Vérifier l'installation de kubectl
+  command: kubectl version --client
+  register: kubectl_version
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Afficher les informations Kubernetes
+  debug:
+    msg:
+      - "✅ Kubernetes (K3s) installé avec succès"
+      - "Version kubectl: {{ kubectl_version.stdout_lines[0] }}"
+
+- name: Vérifier l'état du cluster
+  command: kubectl get nodes
+  register: k3s_nodes
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Afficher l'état des nodes
+  debug:
+    var: k3s_nodes.stdout_lines
+

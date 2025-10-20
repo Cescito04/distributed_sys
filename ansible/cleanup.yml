@@ -1,0 +1,103 @@
+---
+# Playbook pour nettoyer le déploiement ShopHub
+# Usage: ansible-playbook -i inventory.ini cleanup.yml
+
+- name: Nettoyer le déploiement ShopHub E-Commerce
+  hosts: ecommerce_servers
+  become: yes
+  gather_facts: no
+
+  vars:
+    namespace: "{{ app_namespace | default('ecommerce') }}"
+    manifests_path: "{{ k8s_manifests_path | default('/home/ubuntu/k8s') }}"
+
+  tasks:
+    - name: Supprimer le namespace ecommerce (et toutes ses ressources)
+      command: kubectl delete namespace {{ namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: cleanup_result
+      changed_when: "'deleted' in cleanup_result.stdout"
+      ignore_errors: yes
+
+    - name: Attendre que le namespace soit complètement supprimé
+      command: kubectl get namespace {{ namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: ns_check
+      until: ns_check.rc != 0
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Afficher le résultat
+      debug:
+        msg:
+          - "🧹 Nettoyage terminé"
+          - "Namespace {{ namespace }} supprimé"
+          - "Les données PostgreSQL ont été supprimées"
+          - ""
+          - "Pour redéployer:"
+          - "  ansible-playbook -i inventory.ini deploy_app.yml --tags deploy"
+
+- name: Désinstaller Kubernetes (optionnel)
+  hosts: ecommerce_servers
+  become: yes
+  gather_facts: no
+  tags: ['never', 'uninstall-k3s']
+
+  tasks:
+    - name: Vérifier si K3s est installé
+      stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: k3s_uninstall_script
+
+    - name: Désinstaller K3s
+      command: /usr/local/bin/k3s-uninstall.sh
+      when: k3s_uninstall_script.stat.exists
+      register: k3s_uninstall
+      changed_when: k3s_uninstall.rc == 0
+
+    - name: Afficher le résultat
+      debug:
+        msg: "✅ K3s désinstallé"
+      when: k3s_uninstall_script.stat.exists
+
+- name: Désinstaller Docker (optionnel)
+  hosts: ecommerce_servers
+  become: yes
+  gather_facts: no
+  tags: ['never', 'uninstall-docker']
+
+  tasks:
+    - name: Arrêter Docker
+      systemd:
+        name: docker
+        state: stopped
+      ignore_errors: yes
+
+    - name: Supprimer les paquets Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: absent
+        purge: yes
+
+    - name: Supprimer les données Docker
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/docker
+        - /var/lib/containerd
+        - /etc/docker
+
+    - name: Afficher le résultat
+      debug:
+        msg: "✅ Docker désinstallé"
+

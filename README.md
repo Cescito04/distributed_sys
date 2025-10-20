@@ -104,6 +104,34 @@ cd k8s && make deploy
 
 Voir le guide complet : [`k8s/KUBERNETES_SETUP.md`](k8s/KUBERNETES_SETUP.md)
 
+### Option 3 : Ansible (Automatisation sur VM Ubuntu)
+
+#### 1. Installer Ansible
+
+```bash
+pip install ansible
+```
+
+#### 2. Configurer l'inventaire
+
+```bash
+cd ansible
+cp inventory.example.ini inventory.ini
+# Éditer inventory.ini avec l'IP de votre VM Ubuntu
+```
+
+#### 3. Déployer automatiquement
+
+```bash
+# Tester la connexion
+ansible ecommerce_servers -i inventory.ini -m ping
+
+# Déployer tout (Docker + K3s + Application)
+ansible-playbook -i inventory.ini deploy_app.yml
+```
+
+Voir le guide complet : [`ansible/ANSIBLE_GUIDE.md`](ansible/ANSIBLE_GUIDE.md)
+
 ### 3. Accéder aux services
 
 #### Avec Docker Compose

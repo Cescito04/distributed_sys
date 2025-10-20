@@ -1,0 +1,75 @@
+---
+# Playbook Ansible pour déployer ShopHub E-Commerce sur Ubuntu
+# Usage: ansible-playbook -i inventory.ini deploy_app.yml
+
+- name: Déployer ShopHub E-Commerce sur Kubernetes
+  hosts: ecommerce_servers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    k8s_type: "{{ deployment_type | default('k3s') }}"
+    manifests_local_path: "{{ playbook_dir }}/../k8s"
+    manifests_remote_path: "{{ k8s_manifests_path | default('/home/ubuntu/k8s') }}"
+    namespace: "{{ app_namespace | default('ecommerce') }}"
+
+  pre_tasks:
+    - name: Afficher les informations de déploiement
+      debug:
+        msg:
+          - "🚀 Déploiement de ShopHub E-Commerce"
+          - "Hôte cible: {{ ansible_host }}"
+          - "Type K8s: {{ k8s_type }}"
+          - "Namespace: {{ namespace }}"
+          - "Manifests: {{ manifests_remote_path }}"
+
+  roles:
+    - role: install_docker
+      tags: ['docker', 'install']
+    
+    - role: install_kubernetes
+      tags: ['kubernetes', 'k8s', 'install']
+    
+    - role: deploy_app
+      tags: ['deploy', 'app']
+
+  post_tasks:
+    - name: Afficher le résumé du déploiement
+      debug:
+        msg:
+          - "✅ Déploiement terminé avec succès !"
+          - "Namespace: {{ namespace }}"
+          - "Pour accéder au frontend:"
+          - "  kubectl port-forward -n {{ namespace }} service/frontend-service 3000:3000"
+          - "  Puis ouvrir http://localhost:3000"
+          - ""
+          - "Credentials admin:"
+          - "  Email: admin@example.com"
+          - "  Password: admin123"
+
+    - name: Sauvegarder les informations de déploiement
+      copy:
+        content: |
+          Déploiement ShopHub E-Commerce
+          ================================
+          
+          Date: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+          Hôte: {{ ansible_host }}
+          Type K8s: {{ k8s_type }}
+          Namespace: {{ namespace }}
+          
+          Accès:
+            kubectl port-forward -n {{ namespace }} service/frontend-service 3000:3000
+            http://localhost:3000
+          
+          Credentials:
+            Email: admin@example.com
+            Password: admin123
+          
+          Commandes utiles:
+            kubectl get pods -n {{ namespace }}
+            kubectl get services -n {{ namespace }}
+            kubectl logs -n {{ namespace }} -l app=backend
+        dest: "{{ manifests_remote_path }}/deployment_info.txt"
+        mode: '0644'
+

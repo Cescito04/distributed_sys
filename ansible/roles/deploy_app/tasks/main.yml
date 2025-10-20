@@ -1,0 +1,170 @@
+---
+# Rôle pour déployer l'application ShopHub sur Kubernetes
+
+- name: Créer le répertoire pour les manifests Kubernetes
+  file:
+    path: "{{ manifests_remote_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Copier les manifests Kubernetes vers la VM
+  copy:
+    src: "{{ manifests_local_path }}/"
+    dest: "{{ manifests_remote_path }}/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Créer le namespace
+  command: kubectl apply -f {{ manifests_remote_path }}/namespace.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: namespace_result
+  changed_when: "'created' in namespace_result.stdout or 'configured' in namespace_result.stdout"
+
+- name: Appliquer les ConfigMaps
+  command: kubectl apply -f {{ manifests_remote_path }}/configmap.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: configmap_result
+  changed_when: "'created' in configmap_result.stdout or 'configured' in configmap_result.stdout"
+
+- name: Appliquer les Secrets
+  command: kubectl apply -f {{ manifests_remote_path }}/secrets.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: secrets_result
+  changed_when: "'created' in secrets_result.stdout or 'configured' in secrets_result.stdout"
+
+- name: Déployer PostgreSQL
+  command: kubectl apply -f {{ manifests_remote_path }}/postgres-deployment.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: postgres_result
+  changed_when: "'created' in postgres_result.stdout or 'configured' in postgres_result.stdout"
+
+- name: Attendre que PostgreSQL soit prêt
+  command: kubectl wait --for=condition=ready pod -l app=postgres -n {{ namespace }} --timeout=120s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: postgres_ready
+  retries: 3
+  delay: 10
+  until: postgres_ready.rc == 0
+  ignore_errors: yes
+
+- name: Pause pour laisser PostgreSQL s'initialiser complètement
+  pause:
+    seconds: 15
+
+- name: Déployer le Backend Django
+  command: kubectl apply -f {{ manifests_remote_path }}/backend-deployment.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: backend_result
+  changed_when: "'created' in backend_result.stdout or 'configured' in backend_result.stdout"
+
+- name: Attendre que le Backend soit prêt
+  command: kubectl wait --for=condition=ready pod -l app=backend -n {{ namespace }} --timeout=180s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: backend_ready
+  retries: 3
+  delay: 15
+  until: backend_ready.rc == 0
+  ignore_errors: yes
+
+- name: Déployer le Frontend Next.js
+  command: kubectl apply -f {{ manifests_remote_path }}/frontend-deployment.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: frontend_result
+  changed_when: "'created' in frontend_result.stdout or 'configured' in frontend_result.stdout"
+
+- name: Attendre que le Frontend soit prêt
+  command: kubectl wait --for=condition=ready pod -l app=frontend -n {{ namespace }} --timeout=180s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: frontend_ready
+  retries: 3
+  delay: 10
+  until: frontend_ready.rc == 0
+  ignore_errors: yes
+
+- name: Vérifier tous les pods
+  command: kubectl get pods -n {{ namespace }}
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: all_pods
+  changed_when: false
+
+- name: Afficher l'état des pods
+  debug:
+    msg: "{{ all_pods.stdout_lines }}"
+
+- name: Vérifier tous les services
+  command: kubectl get services -n {{ namespace }}
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: all_services
+  changed_when: false
+
+- name: Afficher l'état des services
+  debug:
+    msg: "{{ all_services.stdout_lines }}"
+
+- name: Obtenir le NodePort du frontend
+  shell: |
+    kubectl get service frontend-service -n {{ namespace }} -o jsonpath='{.spec.ports[0].nodePort}'
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: frontend_nodeport
+  changed_when: false
+
+- name: Obtenir l'IP du node
+  command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: node_ip
+  changed_when: false
+
+- name: Tester l'accès au frontend (via localhost sur la VM)
+  uri:
+    url: "http://localhost:{{ frontend_nodeport.stdout }}"
+    method: GET
+    status_code: 200
+    timeout: 10
+  register: frontend_test
+  ignore_errors: yes
+  when: frontend_nodeport.stdout != ""
+
+- name: Afficher les informations d'accès
+  debug:
+    msg:
+      - "🌐 Informations d'accès au frontend:"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "Via NodePort: http://{{ node_ip.stdout }}:{{ frontend_nodeport.stdout }}"
+      - "Via Port Forward (depuis votre machine):"
+      - "  kubectl port-forward -n {{ namespace }} service/frontend-service 3000:3000"
+      - "  http://localhost:3000"
+      - ""
+      - "Test d'accès: {{ 'Succès ✅' if frontend_test.status == 200 else 'En attente (pods en démarrage)' }}"
+
+- name: Créer un script d'accès rapide
+  copy:
+    content: |
+      #!/bin/bash
+      # Script d'accès rapide au frontend ShopHub
+      
+      echo "🚀 ShopHub E-Commerce - Accès Frontend"
+      echo "======================================"
+      echo ""
+      echo "Port forwarding en cours..."
+      kubectl port-forward -n {{ namespace }} service/frontend-service 3000:3000
+    dest: "{{ manifests_remote_path }}/access-frontend.sh"
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+

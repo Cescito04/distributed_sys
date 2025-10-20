@@ -1,0 +1,76 @@
+---
+# Rôle pour installer Docker sur Ubuntu
+
+- name: Mettre à jour le cache APT
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Installer les prérequis pour Docker
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - python3-pip
+    state: present
+
+- name: Créer le répertoire pour les clés APT
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Ajouter la clé GPG de Docker
+  shell: |
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+
+- name: Ajouter le repository Docker
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+
+- name: Installer Docker Engine
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+
+- name: Démarrer et activer Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Ajouter l'utilisateur au groupe docker
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Installer Docker SDK pour Python (pour modules Ansible)
+  pip:
+    name:
+      - docker
+      - docker-compose
+    state: present
+
+- name: Vérifier l'installation de Docker
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Afficher la version de Docker
+  debug:
+    msg: "✅ Docker installé: {{ docker_version.stdout }}"
+

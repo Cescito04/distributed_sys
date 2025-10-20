@@ -1,0 +1,135 @@
+---
+# Playbook de vérification du déploiement
+# Usage: ansible-playbook -i inventory.ini verify.yml
+
+- name: Vérifier le déploiement ShopHub E-Commerce
+  hosts: ecommerce_servers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    namespace: "{{ app_namespace | default('ecommerce') }}"
+
+  tasks:
+    - name: "📊 Vérification de l'installation"
+      debug:
+        msg: "Début des vérifications..."
+
+    - name: Vérifier que Docker est installé
+      command: docker --version
+      register: docker_check
+      changed_when: false
+
+    - name: Vérifier que K3s est installé
+      command: kubectl version --client
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: kubectl_check
+      changed_when: false
+
+    - name: Vérifier l'état du cluster K3s
+      command: kubectl get nodes
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: cluster_nodes
+      changed_when: false
+
+    - name: Vérifier que le namespace existe
+      command: kubectl get namespace {{ namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: namespace_check
+      changed_when: false
+
+    - name: Obtenir l'état de tous les pods
+      command: kubectl get pods -n {{ namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: pods_status
+      changed_when: false
+
+    - name: Compter les pods Running
+      shell: kubectl get pods -n {{ namespace }} --no-headers | grep -c "Running" || echo "0"
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: running_pods
+      changed_when: false
+
+    - name: Compter les pods Ready
+      shell: kubectl get pods -n {{ namespace }} --no-headers | grep -c "1/1" || echo "0"
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: ready_pods
+      changed_when: false
+
+    - name: Obtenir l'état des services
+      command: kubectl get services -n {{ namespace }}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: services_status
+      changed_when: false
+
+    - name: Obtenir le NodePort du frontend
+      shell: kubectl get service frontend-service -n {{ namespace }} -o jsonpath='{.spec.ports[0].nodePort}'
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: frontend_nodeport
+      changed_when: false
+
+    - name: Tester l'accès au frontend
+      uri:
+        url: "http://localhost:{{ frontend_nodeport.stdout }}"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: frontend_access
+      ignore_errors: yes
+
+    - name: Tester l'accès au backend API
+      uri:
+        url: "http://localhost:8000/api/v1/products/"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: backend_access
+      ignore_errors: yes
+      when: false  # Désactivé car backend est ClusterIP
+
+    - name: "📊 Rapport de Vérification"
+      debug:
+        msg:
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - "📊 RAPPORT DE VÉRIFICATION SHOPHUB"
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - ""
+          - "🐳 Docker: {{ 'Installé ✅' if docker_check.rc == 0 else 'Non installé ❌' }}"
+          - "   Version: {{ docker_check.stdout }}"
+          - ""
+          - "☸️  Kubernetes (K3s): {{ 'Installé ✅' if kubectl_check.rc == 0 else 'Non installé ❌' }}"
+          - "   Cluster: {{ cluster_nodes.stdout_lines[1] if cluster_nodes.stdout_lines|length > 1 else 'N/A' }}"
+          - ""
+          - "📦 Namespace: {{ 'Existe ✅' if namespace_check.rc == 0 else 'N/A ❌' }}"
+          - ""
+          - "🔄 Pods:"
+          - "   Running: {{ running_pods.stdout }}/3"
+          - "   Ready: {{ ready_pods.stdout }}/3"
+          - ""
+          - "🌐 Services:"
+          - "   Créés: {{ services_status.stdout_lines|length - 1 if services_status.stdout_lines else 0 }}"
+          - "   Frontend NodePort: {{ frontend_nodeport.stdout }}"
+          - ""
+          - "🧪 Tests d'Accès:"
+          - "   Frontend: {{ 'Accessible ✅' if frontend_access.status == 200 else 'En attente ⏳' }}"
+          - ""
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - "📊 Score: {{ ready_pods.stdout }}/3 pods Ready"
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    - name: Afficher les détails des pods
+      debug:
+        msg: "{{ pods_status.stdout_lines }}"
+
+    - name: Afficher les détails des services
+      debug:
+        msg: "{{ services_status.stdout_lines }}"
+
