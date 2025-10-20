@@ -1,6 +1,15 @@
-# Mini E-Commerce Full-Stack - Système Distribué
+# 🛒 ShopHub - Mini E-Commerce Full-Stack
+
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-success)](https://github.com/Cescito04/distributed_sys)
+[![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-2496ED?logo=docker)](docker-compose.yml)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes)](k8s/)
+[![Django](https://img.shields.io/badge/Django-5.0.1-092E20?logo=django)](backend/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0.4-000000?logo=next.js)](frontend/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)](docker-compose.yml)
 
 Application e-commerce complète avec backend Django, frontend Next.js, PostgreSQL et Docker.
+
+> **🎉 Projet complet, testé et validé sur Docker Compose et Kubernetes !**
 
 ## 🚀 Fonctionnalités
 
