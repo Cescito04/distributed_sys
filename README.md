@@ -37,27 +37,55 @@ Application e-commerce complète avec backend Django, frontend Next.js, PostgreS
 
 ## 🛠️ Installation et Démarrage
 
-### 1. Cloner le projet
+### Option 1 : Docker Compose (Recommandé pour le développement)
+
+#### 1. Cloner le projet
 
 ```bash
 git clone https://github.com/Cescito04/distributed_sys.git
 cd distributed_sys
 ```
 
-### 2. Lancer le projet avec Docker Compose
+#### 2. Lancer avec Docker Compose
 
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
 
 Cette commande va :
-- Construire l'image Docker du backend
+- Construire les images Docker du backend et frontend
 - Démarrer PostgreSQL
 - Appliquer les migrations de base de données
 - Créer un superutilisateur
-- Démarrer le serveur Django
+- Démarrer tous les services
+
+### Option 2 : Kubernetes (Recommandé pour la production)
+
+#### 1. Builder et pusher les images
+
+```bash
+./scripts/build-and-push.sh votre-username-dockerhub
+./scripts/update-k8s-images.sh votre-username-dockerhub
+```
+
+#### 2. Déployer sur Kubernetes
+
+```bash
+# Déployer tout
+kubectl apply -f k8s/
+
+# OU utiliser le script
+./scripts/deploy-k8s.sh
+
+# OU avec Makefile
+cd k8s && make deploy
+```
+
+Voir le guide complet : [`k8s/KUBERNETES_SETUP.md`](k8s/KUBERNETES_SETUP.md)
 
 ### 3. Accéder aux services
+
+#### Avec Docker Compose
 
 Une fois les conteneurs démarrés :
 
@@ -67,6 +95,19 @@ Une fois les conteneurs démarrés :
   - Email : `admin@example.com`
   - Mot de passe : `admin123`
 - **Base de données PostgreSQL** : localhost:5433
+
+#### Avec Kubernetes
+
+```bash
+# Port forward le frontend
+kubectl port-forward -n ecommerce service/frontend-service 3000:3000
+
+# Accéder au frontend
+# http://localhost:3000
+
+# Port forward le backend (optionnel)
+kubectl port-forward -n ecommerce service/backend-service 8000:8000
+```
 
 ## 📡 Endpoints API
 
@@ -175,12 +216,27 @@ distributed_sys/
 │   └── next.config.js         # Configuration Next.js
 │
 ├── docker-compose.yml         # Orchestration (DB + Backend + Frontend)
+├── k8s/                       # Manifests Kubernetes
+│   ├── namespace.yaml         # Namespace ecommerce
+│   ├── configmap.yaml         # Configuration
+│   ├── secrets.yaml           # Secrets (passwords)
+│   ├── postgres-deployment.yaml  # PostgreSQL + PVC
+│   ├── backend-deployment.yaml   # Backend Django
+│   ├── frontend-deployment.yaml  # Frontend Next.js
+│   ├── all-in-one.yaml       # Tous les manifests
+│   ├── kustomization.yaml    # Kustomize
+│   ├── Makefile              # Commandes K8s
+│   └── README.md             # Documentation K8s
+├── scripts/                   # Scripts utilitaires
+│   ├── build-and-push.sh     # Build et push images Docker
+│   ├── update-k8s-images.sh  # Met à jour les manifests
+│   └── deploy-k8s.sh         # Déploie sur K8s
 ├── README.md                  # Documentation principale
 ├── AUTHENTICATION.md          # Guide d'authentification JWT
 ├── API_EXAMPLES.md            # Exemples d'utilisation de l'API
 ├── TEST_RESULTS.md            # Résultats des tests
 ├── FRONTEND_SETUP.md          # Guide de démarrage frontend
-└── Makefile                   # Commandes utiles
+└── Makefile                   # Commandes Docker Compose
 ```
 
 ## 📦 Technologies Utilisées

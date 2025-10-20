@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ecommerce
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - postgres-deployment.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+
+# Labels communs pour toutes les ressources
+commonLabels:
+  project: shophub
+  managed-by: kustomize
+
+# Annotations communes
+commonAnnotations:
+  version: "1.0.0"
+  description: "ShopHub E-Commerce Application"
+
