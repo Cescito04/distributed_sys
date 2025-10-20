@@ -1,17 +1,33 @@
-# Mini E-Commerce Backend - Système Distribué
+# Mini E-Commerce Full-Stack - Système Distribué
 
-Backend Django pour un mini e-commerce avec PostgreSQL et Docker.
+Application e-commerce complète avec backend Django, frontend Next.js, PostgreSQL et Docker.
 
 ## 🚀 Fonctionnalités
 
+### Backend (Django)
 - ✅ API REST avec Django REST Framework
 - ✅ Base de données PostgreSQL
 - ✅ Modèle Utilisateur personnalisé (email comme identifiant)
 - ✅ Modèle Produit avec gestion de stock
 - ✅ API versionnée (`/api/v1/`)
-- ✅ Docker & Docker Compose pour déploiement facile
+- ✅ Authentification JWT
+- ✅ Permissions par rôle (admin/user)
 - ✅ Superutilisateur créé automatiquement
 - ✅ Interface d'administration Django
+
+### Frontend (Next.js)
+- ✅ Interface utilisateur moderne et responsive
+- ✅ Liste des produits avec design professionnel
+- ✅ Système d'authentification (login/register)
+- ✅ Ajout de produits (admin uniquement)
+- ✅ Styled avec Tailwind CSS
+- ✅ TypeScript pour la sécurité des types
+- ✅ Gestion des erreurs et états de chargement
+
+### Infrastructure
+- ✅ Docker & Docker Compose pour déploiement facile
+- ✅ Architecture microservices (Frontend, Backend, Database)
+- ✅ Configuration CORS pour communication frontend-backend
 
 ## 📋 Prérequis
 
@@ -45,43 +61,59 @@ Cette commande va :
 
 Une fois les conteneurs démarrés :
 
+- **Frontend Next.js** : http://localhost:3000 ⭐ **Commencez ici !**
 - **API Backend** : http://localhost:8000
 - **Admin Django** : http://localhost:8000/admin
   - Email : `admin@example.com`
   - Mot de passe : `admin123`
+- **Base de données PostgreSQL** : localhost:5433
 
 ## 📡 Endpoints API
 
-### Produits
+### Authentification
 
-- **GET** `/api/v1/products/` - Liste tous les produits
-- **POST** `/api/v1/products/create/` - Créer un nouveau produit
-- **GET** `/api/v1/products/{id}/` - Détails d'un produit
-- **PUT/PATCH** `/api/v1/products/{id}/` - Modifier un produit
-- **DELETE** `/api/v1/products/{id}/` - Supprimer un produit
+- **POST** `/api/v1/auth/login/` - Connexion (retourne JWT tokens)
+- **POST** `/api/v1/auth/refresh/` - Rafraîchir le token
 
 ### Utilisateurs
 
-- **GET** `/api/v1/users/` - Liste tous les utilisateurs
+- **GET** `/api/v1/users/` - Liste tous les utilisateurs (authentifié)
+- **POST** `/api/v1/users/create/` - Inscription (public)
+- **GET** `/api/v1/users/me/` - Profil utilisateur (authentifié)
+- **GET** `/api/v1/users/{id}/` - Détails utilisateur (admin)
 
-## 🧪 Tester l'API
+### Produits
 
-### Exemple : Obtenir la liste des produits
+- **GET** `/api/v1/products/` - Liste tous les produits (public)
+- **POST** `/api/v1/products/create/` - Créer un nouveau produit (admin)
+- **GET** `/api/v1/products/{id}/` - Détails d'un produit (public)
+- **PUT/PATCH** `/api/v1/products/{id}/` - Modifier un produit (admin)
+- **DELETE** `/api/v1/products/{id}/` - Supprimer un produit (admin)
+
+## 🧪 Tester l'application
+
+### Option 1 : Via le Frontend (Recommandé)
+
+1. Ouvrir http://localhost:3000
+2. Consulter la liste des produits
+3. Cliquer sur "Connexion" et utiliser :
+   - Email : `admin@example.com`
+   - Mot de passe : `admin123`
+4. Cliquer sur "Ajouter Produit" et remplir le formulaire
+5. Le produit apparaîtra sur la page d'accueil
+
+### Option 2 : Via l'API directement
 
 ```bash
-curl http://localhost:8000/api/v1/products/
-```
+# 1. Se connecter et obtenir le token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "admin123"}' \
+  | grep -o '"access":"[^"]*"' | cut -d'"' -f4)
 
-### Exemple : Créer un produit via l'admin Django
-
-1. Accédez à http://localhost:8000/admin
-2. Connectez-vous avec `admin@example.com` / `admin123`
-3. Allez dans "Produits" → "Ajouter un produit"
-
-### Exemple : Créer un produit via l'API
-
-```bash
+# 2. Créer un produit
 curl -X POST http://localhost:8000/api/v1/products/create/ \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "nom": "MacBook Pro",
@@ -89,7 +121,16 @@ curl -X POST http://localhost:8000/api/v1/products/create/ \
     "prix": "2499.99",
     "quantite": 10
   }'
+
+# 3. Voir tous les produits
+curl http://localhost:8000/api/v1/products/
 ```
+
+### Option 3 : Via Django Admin
+
+1. Accédez à http://localhost:8000/admin
+2. Connectez-vous avec `admin@example.com` / `admin123`
+3. Allez dans "Produits" → "Ajouter un produit"
 
 ## 🏗️ Structure du Projet
 
@@ -97,40 +138,72 @@ curl -X POST http://localhost:8000/api/v1/products/create/ \
 distributed_sys/
 ├── backend/                    # Application Django
 │   ├── backend/               # Configuration du projet Django
-│   │   ├── __init__.py
-│   │   ├── settings.py        # Configuration (PostgreSQL, DRF, etc.)
-│   │   ├── urls.py            # Routes principales
-│   │   ├── wsgi.py
-│   │   └── asgi.py
+│   │   ├── settings.py        # Configuration (PostgreSQL, DRF, JWT, CORS)
+│   │   └── urls.py            # Routes principales API
 │   ├── users/                 # App Utilisateurs
 │   │   ├── models.py          # Modèle Utilisateur personnalisé
 │   │   ├── serializers.py     # Serializers DRF
-│   │   ├── views.py           # Vues API
-│   │   ├── admin.py           # Configuration admin
-│   │   └── urls.py
+│   │   ├── views.py           # Vues API (auth, CRUD users)
+│   │   └── urls.py            # Routes utilisateurs et auth
 │   ├── products/              # App Produits
 │   │   ├── models.py          # Modèle Produit
 │   │   ├── serializers.py     # Serializers DRF
-│   │   ├── views.py           # Vues API
-│   │   ├── admin.py           # Configuration admin
-│   │   └── urls.py
-│   ├── manage.py
+│   │   ├── views.py           # Vues API (CRUD produits)
+│   │   └── urls.py            # Routes produits
 │   ├── requirements.txt       # Dépendances Python
-│   ├── Dockerfile             # Image Docker pour le backend
+│   ├── Dockerfile             # Image Docker backend
 │   └── entrypoint.sh          # Script de démarrage
-├── docker-compose.yml         # Orchestration des services
-└── README.md                  # Ce fichier
+│
+├── frontend/                   # Application Next.js
+│   ├── components/            # Composants React
+│   │   ├── Layout.tsx         # Layout principal
+│   │   ├── Navbar.tsx         # Barre de navigation
+│   │   ├── ProductCard.tsx    # Carte produit
+│   │   └── LoadingSpinner.tsx # Loader
+│   ├── lib/                   # Services et types
+│   │   ├── api.ts             # Client API Axios
+│   │   └── types.ts           # Types TypeScript
+│   ├── pages/                 # Pages Next.js
+│   │   ├── index.tsx          # Page d'accueil (liste produits)
+│   │   ├── login.tsx          # Page de connexion
+│   │   ├── register.tsx       # Page d'inscription
+│   │   └── add-product.tsx    # Page d'ajout produit
+│   ├── styles/
+│   │   └── globals.css        # Styles Tailwind
+│   ├── package.json           # Dépendances npm
+│   ├── Dockerfile             # Image Docker frontend
+│   └── next.config.js         # Configuration Next.js
+│
+├── docker-compose.yml         # Orchestration (DB + Backend + Frontend)
+├── README.md                  # Documentation principale
+├── AUTHENTICATION.md          # Guide d'authentification JWT
+├── API_EXAMPLES.md            # Exemples d'utilisation de l'API
+├── TEST_RESULTS.md            # Résultats des tests
+├── FRONTEND_SETUP.md          # Guide de démarrage frontend
+└── Makefile                   # Commandes utiles
 ```
 
 ## 📦 Technologies Utilisées
 
+### Backend
 - **Python 3.12**
 - **Django 5.0.1**
 - **Django REST Framework 3.14.0**
+- **Django REST Framework Simple JWT 5.3.1** (authentification)
 - **PostgreSQL 16**
-- **Docker & Docker Compose**
 - **psycopg2-binary** (driver PostgreSQL)
 - **django-cors-headers** (gestion CORS)
+
+### Frontend
+- **Next.js 14.0.4**
+- **React 18.2.0**
+- **TypeScript 5.3.3**
+- **Tailwind CSS 3.3.6**
+- **Axios 1.6.2** (client HTTP)
+
+### Infrastructure
+- **Docker & Docker Compose**
+- Architecture microservices
 
 ## 🔧 Configuration
 
