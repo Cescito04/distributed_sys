@@ -34,6 +34,3 @@ EXPOSE 8000
 # Rendre le script d'entrée exécutable
 RUN chmod +x /app/entrypoint.sh
 
-# Définir le script d'entrée
-ENTRYPOINT ["/app/entrypoint.sh"]
-
